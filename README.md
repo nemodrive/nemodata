@@ -11,7 +11,7 @@ cd nemodata
 pip install .
 ```
 
-Make sure use your anaconda env (if you so desire) during installation
+Make sure to use your anaconda env (if you so desire) during installation
 
 ## Examples
 
@@ -35,6 +35,8 @@ nemoplayer
 ```
 
 Which will open the graphical user interface
+
+<img align="center" src="docs/source/images/gui_example.jpg">
 
 #### Notice:
 
