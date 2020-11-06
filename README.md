@@ -61,7 +61,9 @@ with Player("/home/dataset/session_1/") as p:
 
 ```
 
-To visualise a recording in human-readable format run the following command:
+### Visualise a recording in human-readable format
+
+Run the following command:
 ```
 nemoplayer
 ```
