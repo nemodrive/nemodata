@@ -13,7 +13,7 @@ import pyqtgraph as pg
 import numpy as np
 from threading import Event
 
-from nemodata import Player
+from nemodata import Player, VariableSampleRatePlayer
 
 
 GPS_PLOT_ENABLED = False
@@ -54,7 +54,7 @@ class StreamThread(QThread):
 
         self.telemetry_delay_frames = 10
 
-        self.player = Player(self.rec_path)
+        self.player = Player(self.rec_path)  # VariableSampleRatePlayer(self.rec_path, min_packet_delay_ms=300)
         self.player.start()
 
         # self.change_pixmap = pyqtSignal(QImage) THIS IS WRONG! Because of the internal implementation of QtSignal
@@ -196,6 +196,8 @@ class StreamThread(QThread):
             else:
 
                 total_elapsed_this_packet = time.time() - total_elapsed_this_packet
+
+                # print((recv_obj['datetime'] - previous_packet_datetime).total_seconds())
 
                 required_delay = (recv_obj['datetime'] - previous_packet_datetime).total_seconds() - total_elapsed_this_packet
                 previous_packet_datetime = recv_obj['datetime']

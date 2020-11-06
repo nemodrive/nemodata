@@ -9,6 +9,10 @@ import cv2
 
 import logging
 
+import datetime
+
+from .compression import JITDecompressor
+
 
 class VideoReadBuffer:
     """Wrapper for the chosen video player backend, which also keeps track of the read frame indices."""
@@ -252,3 +256,79 @@ class Player:
                 continue
             else:
                 break
+
+
+class VariableSampleRatePlayer(Player):
+
+    def __init__(self,
+                 in_path: Optional[str] = "./test_recording/",
+                 min_packet_delay_ms: Optional[int] = 300,
+                 compute_indices: Optional[bool] = True,
+                 enabled_positions: Optional[Tuple[str]] = ("center", "left", "right")
+                 ):
+        """
+        Instantiates the Player with the details of the dataset that will be played back.
+        To be ready for playback start() needs to be called.
+        This is done automatically if the Player is called within a Python "with" statement.
+
+        VariableSampleRatePlayer allows you to specify a minimum delay time between packets.
+        Data is merged between packets that come before the delay period ends, and then output as a single packet.
+        This can be used to simulate a lower framerate recording.
+
+        Args:
+            in_path (Optional[str]): Directory where the dataset is found on disk
+            min_packet_delay_ms (Optional[int]): skips packets until their time difference is bigger than this value
+            compute_indices (Optional[bool]): If true seeking options for the dataset will be enabled
+            enabled_positions (Optional[Tuple[str]]): Names of the cameras to be used (e.g. ("center", "left"))
+        """
+
+        super(VariableSampleRatePlayer, self).__init__(in_path, compute_indices, enabled_positions)
+
+        self.min_packet_delay_ms = min_packet_delay_ms
+        self._decompressor = JITDecompressor()
+
+    @property
+    def crt_frame_index(self):
+        return Player.crt_frame_index.fget(self)
+
+    @crt_frame_index.setter
+    def crt_frame_index(self, value):
+        Player.crt_frame_index.fset(self, value)
+        self._decompressor.rewind()
+
+    def get_next_packet(self) -> Optional[Union[dict, None]]:
+        """
+        Return the next packet in the recording.
+        Recording will advance to the next packet after get_next_packet() is called.
+
+
+        Returns:
+            Optional[Union[dict, None]]: Read data packet. If recording has finished returns None.
+        """
+
+        initial_packet = super(VariableSampleRatePlayer, self).get_next_packet()
+
+        if initial_packet is None:
+            return None
+        else:
+
+            self._decompressor.decompress_next_packet(initial_packet)
+
+            next_packet = super(VariableSampleRatePlayer, self).get_next_packet()
+            d_next_packet = self._decompressor.decompress_next_packet(next_packet)
+
+            time_diff = d_next_packet["datetime"] - initial_packet["datetime"]
+
+            while time_diff.total_seconds() * 1000 < self.min_packet_delay_ms:
+
+                next_packet = super(VariableSampleRatePlayer, self).get_next_packet()
+                d_next_packet = self._decompressor.decompress_next_packet(next_packet)
+
+                time_diff = d_next_packet["datetime"] - initial_packet["datetime"]
+
+            return d_next_packet
+
+    def rewind(self):
+        """Rewinds the dataset, the next packet returned by the stream will be the first packet in the dataset"""
+        super(VariableSampleRatePlayer, self).rewind()
+        self._decompressor.rewind()

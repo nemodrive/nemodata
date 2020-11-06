@@ -1,3 +1,3 @@
-from .players import Player
+from .players import Player, VariableSampleRatePlayer
 
 __version__ = "0.1"
