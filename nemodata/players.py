@@ -309,12 +309,18 @@ class VariableSampleRatePlayer(Player):
         initial_packet = super(VariableSampleRatePlayer, self).get_next_packet()
 
         if initial_packet is None:
+            self._decompressor.rewind()
             return None
         else:
 
+            next_packet = super(VariableSampleRatePlayer, self).get_next_packet()
+
+            if next_packet is None:
+                self._decompressor.rewind()
+                return initial_packet
+
             self._decompressor.decompress_next_packet(initial_packet)
 
-            next_packet = super(VariableSampleRatePlayer, self).get_next_packet()
             d_next_packet = self._decompressor.decompress_next_packet(next_packet)
 
             time_diff = d_next_packet["datetime"] - initial_packet["datetime"]
@@ -326,6 +332,7 @@ class VariableSampleRatePlayer(Player):
 
                 time_diff = d_next_packet["datetime"] - initial_packet["datetime"]
 
+            self._decompressor.rewind()
             return d_next_packet
 
     def rewind(self):
