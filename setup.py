@@ -8,6 +8,7 @@ setup(
     packages=['nemodata'],
     install_requires=[
         'numpy',
+        'scipy',
         'opencv-python',
         'PyQt5',
         'pyqtgraph',

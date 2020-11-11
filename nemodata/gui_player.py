@@ -4,6 +4,7 @@ import sys
 import statistics
 import time
 import os
+from threading import Event
 
 import cv2
 from PyQt5 import QtWidgets, uic
@@ -11,7 +12,7 @@ from PyQt5.QtCore import QThread, pyqtSignal, Qt, pyqtSlot, QByteArray
 from PyQt5.QtGui import QImage, QPixmap, QIcon
 import pyqtgraph as pg
 import numpy as np
-from threading import Event
+from scipy.spatial.transform import Rotation
 
 from nemodata import Player, VariableSampleRatePlayer
 
@@ -27,6 +28,7 @@ class StreamThread(QThread):
     # signal_fps = pyqtSignal(int)
     signal_ms = pyqtSignal(int)
     signal_speed = pyqtSignal(int)
+    signal_orientation = pyqtSignal(int)
     signal_brake = pyqtSignal(int)
     signal_turn = pyqtSignal(int)
     signal_steer = pyqtSignal(int)
@@ -137,6 +139,12 @@ class StreamThread(QThread):
 
             if "imu" in recv_obj["sensor_data"].keys() and recv_obj["sensor_data"]["imu"] is not None:
                 self.signal_imu.emit(recv_obj["sensor_data"]["imu"])
+
+                quat = list(recv_obj["sensor_data"]["imu"]["orientation_quaternion"].values())
+                rot = Rotation.from_quat(quat)
+                euler = rot.as_euler('zxy', degrees=True)
+
+                self.signal_orientation.emit(int(euler[2]))
 
             if "canbus" in recv_obj["sensor_data"].keys() and recv_obj["sensor_data"]["canbus"] is not None:
 
@@ -256,6 +264,10 @@ class MyWindow(QtWidgets.QMainWindow):
         self.lcd_speed.display(kph)
 
     @pyqtSlot(int)
+    def set_orientation(self, orientation_deg):
+        self.lcd_orientation.display(orientation_deg)
+
+    @pyqtSlot(int)
     def set_brake(self, press):
         self.lcd_brake.display(press)
 
@@ -362,6 +374,7 @@ class MyWindow(QtWidgets.QMainWindow):
         # self.stream_thread.signal_fps.connect(self.set_fps)
         self.stream_thread.signal_ms.connect(self.set_delay)
         self.stream_thread.signal_speed.connect(self.set_speed)
+        self.stream_thread.signal_orientation.connect(self.set_orientation)
         self.stream_thread.signal_brake.connect(self.set_brake)
         self.stream_thread.signal_steer.connect(self.set_steer)
 
@@ -430,6 +443,7 @@ class MyWindow(QtWidgets.QMainWindow):
         # self.lcd_fps = self.findChild(QtWidgets.QLCDNumber, 'lcdFPS')
         self.lcd_delay = self.findChild(QtWidgets.QLCDNumber, 'lcdDelay')
         self.lcd_speed = self.findChild(QtWidgets.QLCDNumber, 'lcdSpeed')
+        self.lcd_orientation = self.findChild(QtWidgets.QLCDNumber, 'lcdOrientation')
         self.lcd_brake = self.findChild(QtWidgets.QLCDNumber, 'lcdBrake')
         self.lcd_steer = self.findChild(QtWidgets.QLCDNumber, 'lcdSteer')
 
