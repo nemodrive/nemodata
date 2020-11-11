@@ -9,7 +9,7 @@ setup(
     install_requires=[
         'numpy',
         'scipy',
-        'opencv-python',
+        'opencv-python==4.3.0.36',
         'PyQt5',
         'pyqtgraph',
     ],
