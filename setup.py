@@ -5,7 +5,7 @@ setup(
     version='0.1',
     description='Tools that facilitate the manipulation of Nemodrive session recordings',
     url='https://github.com/nemodrive/nemodata',
-    packages=['nemodata'],
+    packages=['nemodata', 'nemodata.compression'],
     install_requires=[
         'numpy',
         'scipy',
