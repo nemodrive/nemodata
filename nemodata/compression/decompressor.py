@@ -31,6 +31,9 @@ class Decompressor:
 
         for k, v in reference.items():
 
+            if target is None:
+                target = {}
+
             if k not in target:
                 target[k] = deepcopy(v)
             elif isinstance(v, dict):
